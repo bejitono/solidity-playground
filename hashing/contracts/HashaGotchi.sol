@@ -1,16 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0
 
-pragma solidity >=0.7.0 <0.9.0;
+pragma solidity ^0.8.4;
 
-// Hashing
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract HashaGotchiGame {
+contract HashaGotchiGame is ERC721 {
     
     struct HashaGotchi {
         string name;
         uint256 strength;
         uint256 experience;
     }
+
+    using Counters for Counters.Counter;
+    
+    Counters.Counter private _gotchiIds;
     
     mapping (bytes32 => address) hashaGotchiOwners;
     mapping (address => HashaGotchi[]) gotchis;
@@ -22,6 +27,10 @@ contract HashaGotchiGame {
         uint256 strength, 
         uint256 experience
     );
+
+    /* ============ Constructor ============ */
+
+    constructor() ERC721("HashaGotchi", "HGI") { }
     
     /* ============ External Functions ============ */
     
@@ -44,6 +53,7 @@ contract HashaGotchiGame {
         hashaGotchiOwners[hash] = msg.sender;
         HashaGotchi[] storage currentGotchis = gotchis[msg.sender];
         currentGotchis.push(hashaGotchi);
+        _mint(msg.sender);
 
         emit AddedGotchi(_name, _strength, _experience);
     }
@@ -77,5 +87,12 @@ contract HashaGotchiGame {
             _strength,
             _experience
         ));
+    }
+    
+    function _mint(address receiver) internal {
+        _gotchiIds.increment();
+        uint256 newGotchiId = _gotchiIds.current();
+        _mint(receiver, newGotchiId);
+        //_setTokenURI(newGotchiId, tokenURI);
     }
 }
