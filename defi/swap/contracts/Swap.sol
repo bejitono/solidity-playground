@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "./interfaces/Uniswap.sol";
-import "../shared/IERC20.sol";
+import "../../shared/IERC20.sol";
 
 contract Swap {
 
