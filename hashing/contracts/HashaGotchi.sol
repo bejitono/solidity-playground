@@ -41,7 +41,7 @@ contract HashaGotchiGame is ERC721 {
         bytes32 hash = _hash(_name, _strength, _experience);
         
         require(msg.sender != address(0), "Address can't be zero");
-        require(hashToGotchiIds[hash] != 0, "HashaGotchi already exists"); 
+        require(hashToGotchiIds[hash] == 0, "HashaGotchi already exists"); 
         
         HashaGotchi memory hashaGotchi = HashaGotchi({
             name: _name,
