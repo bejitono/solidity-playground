@@ -16,9 +16,8 @@ contract HashaGotchiGame is ERC721 {
     using Counters for Counters.Counter;
     
     Counters.Counter private _gotchiIds;
-    
-    mapping (bytes32 => address) hashaGotchiOwners;
-    mapping (address => HashaGotchi[]) gotchis;
+    mapping (bytes32 => uint256) hashToGotchiIds;
+    HashaGotchi[] gotchis;
 
     /* ============ Events ============ */
 
@@ -42,7 +41,7 @@ contract HashaGotchiGame is ERC721 {
         bytes32 hash = _hash(_name, _strength, _experience);
         
         require(msg.sender != address(0), "Address can't be zero");
-        require(hashaGotchiOwners[hash] != msg.sender, "HashaGotchi already exists"); 
+        require(hashToGotchiIds[hash] != 0, "HashaGotchi already exists"); 
         
         HashaGotchi memory hashaGotchi = HashaGotchi({
             name: _name,
@@ -50,11 +49,9 @@ contract HashaGotchiGame is ERC721 {
             experience: _experience
         });
         
-        hashaGotchiOwners[hash] = msg.sender;
-        HashaGotchi[] storage currentGotchis = gotchis[msg.sender];
-        currentGotchis.push(hashaGotchi);
-        _mint(msg.sender);
-
+        uint256 gotchiId = _mint(msg.sender);
+        gotchis[gotchiId] = hashaGotchi;
+        hashToGotchiIds[hash] = gotchiId;
         emit AddedGotchi(_name, _strength, _experience);
     }
     
@@ -66,11 +63,12 @@ contract HashaGotchiGame is ERC721 {
         uint256 _experience
     ) external view returns (address) {
         bytes32 hash = _hash(_name, _strength, _experience);
-        return hashaGotchiOwners[hash];
+        uint256 gotchiId = hashToGotchiIds[hash];
+        return ownerOf(gotchiId);
     }
     
     function gotchiCount() external view returns (uint256) {
-        return gotchis[msg.sender].length;
+        return balanceOf(msg.sender);
     }
     
     /* ============ Internal ============ */
@@ -89,10 +87,11 @@ contract HashaGotchiGame is ERC721 {
         ));
     }
     
-    function _mint(address receiver) internal {
+    function _mint(address receiver) internal returns (uint256) {
         _gotchiIds.increment();
         uint256 newGotchiId = _gotchiIds.current();
         _mint(receiver, newGotchiId);
         //_setTokenURI(newGotchiId, tokenURI);
+        return newGotchiId;
     }
 }
