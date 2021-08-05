@@ -16,6 +16,7 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
     
     event Deposited(address indexed sender, uint amount, uint balance);
     event AddedTrustee(address indexed trustee);
+    event RemovedTrustee(address indexed trustee);
     
     /* ============ Modifiers ============ */
     
@@ -42,6 +43,9 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
     bytes32 constant BENEFICIARY = keccak256("BENEFICIARY");
     
     address beneficiary;
+    uint256 numberOfTrustees;
+    uint256 numberOfReleaseApprovals;
+    mapping (address => bool) hasApprovedRelease;
     
     /* ============ Constructor ============ */
     
@@ -56,6 +60,7 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
         
         for (uint i = 0; i < _trustees.length; i++) {
             grantRole(TRUSTEE, _trustees[i]);
+            numberOfTrustees = numberOfTrustees.add(1);
             emit AddedTrustee(_trustees[i]);
         }
     }
@@ -66,10 +71,32 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
     
     /* ============ External Functions ============ */
     
-    function withdraw(uint256 _amount) onlyBeneficiary() external {
+    function withdraw(uint256 _amount) external onlyBeneficiary nonReentrant {
         require(address(this).balance >= _amount, "Insufficient funds");
         // TODO: Additional conditions for withdrawals
         require(_attemptETHTransfer(beneficiary, _amount), "Transfer failed");
+    }
+    
+    function addTrustee(address _trustee) external {
+        grantRole(TRUSTEE, _trustee);
+        numberOfTrustees = numberOfTrustees.add(1);
+        emit AddedTrustee(_trustee);
+    }
+    
+    function removeTrustee(address _trustee) external {
+        revokeRole(TRUSTEE, _trustee);
+        numberOfTrustees = numberOfTrustees.sub(1);
+        emit RemovedTrustee(_trustee);
+    }
+    
+    /* ============ Getter Functions ============ */
+    
+    function getNumberOfTrustees() external view returns (uint256) {
+        return numberOfTrustees;
+    }
+    
+    function getNumberReleaseApprovals() external view returns (uint256) {
+        return numberOfReleaseApprovals;
     }
     
     /* ============ Internal Functions ============ */
