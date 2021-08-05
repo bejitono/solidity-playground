@@ -17,6 +17,8 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
     event Deposited(address indexed sender, uint amount, uint balance);
     event AddedTrustee(address indexed trustee);
     event RemovedTrustee(address indexed trustee);
+    event ApprovedRelease(address indexed trustee);
+    event RevokedReleaseApproval(address indexed trustee);
     
     /* ============ Modifiers ============ */
     
@@ -63,9 +65,6 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
             numberOfTrustees = numberOfTrustees.add(1);
             emit AddedTrustee(_trustees[i]);
         }
-        
-        grantRole(TRUSTEE, msg.sender);
-        numberOfTrustees = numberOfTrustees.add(1);
     }
     
     receive() payable external {
@@ -84,15 +83,18 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
         require(!hasApprovedRelease[msg.sender], "Already approved");
         hasApprovedRelease[msg.sender] = true;
         numberOfReleaseApprovals = numberOfReleaseApprovals.add(1);
+         emit ApprovedRelease(msg.sender);
     }
     
     function revokeReleaseApproval() external onlyTrustee {
         require(hasApprovedRelease[msg.sender], "Not yet approved");
         hasApprovedRelease[msg.sender] = false;
         numberOfReleaseApprovals = numberOfReleaseApprovals.sub(1);
+        emit RevokedReleaseApproval(msg.sender);
     }
     
     function addTrustee(address _trustee) external {
+        require(!hasRole(TRUSTEE, _trustee), "Is already a trustee");
         grantRole(TRUSTEE, _trustee);
         numberOfTrustees = numberOfTrustees.add(1);
         emit AddedTrustee(_trustee);
