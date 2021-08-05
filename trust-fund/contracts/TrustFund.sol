@@ -77,6 +77,18 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
         require(_attemptETHTransfer(beneficiary, _amount), "Transfer failed");
     }
     
+    function approveRelease() external onlyTrustee {
+        require(!hasApprovedRelease[msg.sender], "Already approved");
+        hasApprovedRelease[msg.sender] = true;
+        numberOfReleaseApprovals = numberOfReleaseApprovals.add(1);
+    }
+    
+    function revokeReleaseApproval() external onlyTrustee {
+        require(hasApprovedRelease[msg.sender], "Not yet approved");
+        hasApprovedRelease[msg.sender] = false;
+        numberOfReleaseApprovals = numberOfReleaseApprovals.sub(1);
+    }
+    
     function addTrustee(address _trustee) external {
         grantRole(TRUSTEE, _trustee);
         numberOfTrustees = numberOfTrustees.add(1);
