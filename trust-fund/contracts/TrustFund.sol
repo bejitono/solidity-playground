@@ -63,6 +63,9 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
             numberOfTrustees = numberOfTrustees.add(1);
             emit AddedTrustee(_trustees[i]);
         }
+        
+        grantRole(TRUSTEE, msg.sender);
+        numberOfTrustees = numberOfTrustees.add(1);
     }
     
     receive() payable external {
@@ -73,7 +76,7 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
     
     function withdraw(uint256 _amount) external onlyBeneficiary nonReentrant {
         require(address(this).balance >= _amount, "Insufficient funds");
-        // TODO: Additional conditions for withdrawals
+        require(_allTrusteesApproved(), "All trustees must approve release");
         require(_attemptETHTransfer(beneficiary, _amount), "Transfer failed");
     }
     
@@ -112,6 +115,10 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
     }
     
     /* ============ Internal Functions ============ */
+    
+    function _allTrusteesApproved() internal view returns (bool) {
+        return numberOfTrustees == numberOfReleaseApprovals;
+    }
     
     function _attemptETHTransfer(address _to, uint256 _value) internal returns (bool) {
         (bool success, ) = _to.call{value: _value}("");
