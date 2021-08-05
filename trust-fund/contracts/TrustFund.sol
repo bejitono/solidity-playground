@@ -63,4 +63,19 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
     receive() payable external {
         emit Deposited(msg.sender, msg.value, address(this).balance);
     }
+    
+    /* ============ External Functions ============ */
+    
+    function withdraw(uint256 _amount) onlyBeneficiary() external {
+        require(address(this).balance >= _amount, "Insufficient funds");
+        // TODO: Additional conditions for withdrawals
+        require(_attemptETHTransfer(beneficiary, _amount), "Transfer failed");
+    }
+    
+    /* ============ Internal Functions ============ */
+    
+    function _attemptETHTransfer(address _to, uint256 _value) internal returns (bool) {
+        (bool success, ) = _to.call{value: _value}("");
+        return success;
+    }
 }

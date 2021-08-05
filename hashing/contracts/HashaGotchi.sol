@@ -5,6 +5,10 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
+/**
+ * A playground project to experiment with hashing and ERC721.
+ * This contract is only for experimental purposes and is unsuitable for any sort of use case.
+ */
 contract HashaGotchiGame is ERC721 {
     
     struct HashaGotchi {
@@ -23,7 +27,7 @@ contract HashaGotchiGame is ERC721 {
 
     event AddedGotchi(
         string name, 
-        uint256 strength, 
+        uint256 strength,
         uint256 experience
     );
 
