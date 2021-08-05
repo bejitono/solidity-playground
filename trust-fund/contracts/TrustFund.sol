@@ -62,7 +62,6 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
         
         for (uint i = 0; i < _trustees.length; i++) {
             grantRole(TRUSTEE, _trustees[i]);
-            numberOfTrustees = numberOfTrustees.add(1);
             emit AddedTrustee(_trustees[i]);
         }
     }
@@ -96,14 +95,48 @@ contract TrustFund is ITrustFund, ReentrancyGuard, AccessControl {
     function addTrustee(address _trustee) external {
         require(!hasRole(TRUSTEE, _trustee), "Is already a trustee");
         grantRole(TRUSTEE, _trustee);
-        numberOfTrustees = numberOfTrustees.add(1);
         emit AddedTrustee(_trustee);
     }
     
     function removeTrustee(address _trustee) external {
+        require(!hasRole(DEFAULT_ADMIN_ROLE, _trustee), "Admin must not be removed");
         revokeRole(TRUSTEE, _trustee);
-        numberOfTrustees = numberOfTrustees.sub(1);
         emit RemovedTrustee(_trustee);
+    }
+    
+    function renounceTrustee() external {
+        require(!hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Admin must not be removed");
+        renounceRole(TRUSTEE, msg.sender);
+        emit RemovedTrustee(msg.sender);
+    }
+    
+    /* ============ Overridden AccessControl Functions ============ */
+    
+    function grantRole(
+        bytes32 role, 
+        address account
+    ) public virtual override onlyRole(getRoleAdmin(role)) {
+        super.grantRole(role, account);
+        if (role == TRUSTEE) {
+            numberOfTrustees = numberOfTrustees.add(1);
+        }
+    }
+    
+    function revokeRole(
+        bytes32 role, 
+        address account
+    ) public virtual override onlyRole(getRoleAdmin(role)) {
+        super.revokeRole(role, account);
+        if (role == TRUSTEE) {
+            numberOfTrustees = numberOfTrustees.sub(1);
+        }
+    }
+    
+    function renounceRole(bytes32 role, address account) public virtual override {
+        super.renounceRole(role, account);
+        if (role == TRUSTEE) {
+            numberOfTrustees = numberOfTrustees.sub(1);
+        }
     }
     
     /* ============ Getter Functions ============ */
