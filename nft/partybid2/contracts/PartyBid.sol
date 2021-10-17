@@ -172,36 +172,7 @@ contract PartyBid is ReentrancyGuardUpgradeable, ERC721HolderUpgradeable {
         string memory _name,
         string memory _symbol
     ) external initializer {
-        // initialize ReentrancyGuard and ERC721Holder
-        __ReentrancyGuard_init();
-        __ERC721Holder_init();
-        // set storage variables
-        marketWrapper = IMarketWrapper(_marketWrapper);
-        nftContract = IERC721Metadata(_nftContract);
-        tokenId = _tokenId;
-        auctionId = _auctionId;
-        name = _name;
-        symbol = _symbol;
-        // validate that party split won't retain the total token supply
-        uint256 _remainingBasisPoints = 10000 - TOKEN_FEE_BASIS_POINTS;
-        require(_splitBasisPoints < _remainingBasisPoints, "PartyBid::initialize: basis points can't take 100%");
-        // validate that a portion of the token supply is not being burned
-        if (_splitRecipient == address(0)) {
-            require(_splitBasisPoints == 0, "PartyBid::initialize: can't send tokens to burn addr");
-        }
-        splitBasisPoints = _splitBasisPoints;
-        splitRecipient = _splitRecipient;
-        // validate token exists
-        require(_getOwner() != address(0), "PartyBid::initialize: NFT getOwner failed");
-        // validate auction exists
-        require(
-            marketWrapper.auctionIdMatchesToken(
-                _auctionId,
-                _nftContract,
-                _tokenId
-            ),
-            "PartyBid::initialize: auctionId doesn't match token"
-        );
+        
     }
 
     // ======== External: Contribute =========
@@ -212,34 +183,7 @@ contract PartyBid is ReentrancyGuardUpgradeable, ERC721HolderUpgradeable {
      * @dev Emits a Contributed event upon success; callable by anyone
      */
     function contribute() external payable nonReentrant {
-        require(
-            partyStatus == PartyStatus.AUCTION_ACTIVE,
-            "PartyBid::contribute: auction not active"
-        );
-        address _contributor = msg.sender;
-        uint256 _amount = msg.value;
-        require(_amount > 0, "PartyBid::contribute: must contribute more than 0");
-        // get the current contract balance
-        uint256 _previousTotalContributedToParty = totalContributedToParty;
-        // add contribution to contributor's array of contributions
-        Contribution memory _contribution =
-            Contribution({
-                amount: _amount,
-                previousTotalContributedToParty: _previousTotalContributedToParty
-            });
-        contributions[_contributor].push(_contribution);
-        // add to contributor's total contribution
-        totalContributed[_contributor] =
-            totalContributed[_contributor] +
-            _amount;
-        // add to party's total contribution & emit event
-        totalContributedToParty = totalContributedToParty + _amount;
-        emit Contributed(
-            _contributor,
-            _amount,
-            _previousTotalContributedToParty,
-            totalContributed[_contributor]
-        );
+        
     }
 
     // ======== External: Bid =========
@@ -252,49 +196,7 @@ contract PartyBid is ReentrancyGuardUpgradeable, ERC721HolderUpgradeable {
      * Callable by any contributor
      */
     function bid() external nonReentrant {
-        require(
-            partyStatus == PartyStatus.AUCTION_ACTIVE,
-            "PartyBid::bid: auction not active"
-        );
-        require(
-            totalContributed[msg.sender] > 0,
-            "PartyBid::bid: only contributors can bid"
-        );
-        require(
-            address(this) !=
-                marketWrapper.getCurrentHighestBidder(
-                    auctionId
-                ),
-            "PartyBid::bid: already highest bidder"
-        );
-        require(
-            !marketWrapper.isFinalized(auctionId),
-            "PartyBid::bid: auction already finalized"
-        );
-        // get the minimum next bid for the auction
-        uint256 _bid = marketWrapper.getMinimumBid(auctionId);
-        // ensure there is enough ETH to place the bid including PartyDAO fee
-        require(
-            _bid <= getMaximumBid(),
-            "PartyBid::bid: insufficient funds to bid"
-        );
-        // submit bid to Auction contract using delegatecall
-        (bool success, bytes memory returnData) =
-            address(marketWrapper).delegatecall(
-                abi.encodeWithSignature("bid(uint256,uint256)", auctionId, _bid)
-            );
-        require(
-            success,
-            string(
-                abi.encodePacked(
-                    "PartyBid::bid: place bid failed: ",
-                    returnData
-                )
-            )
-        );
-        // update highest bid submitted & emit success event
-        highestBid = _bid;
-        emit Bid(_bid);
+        
     }
 
     // ======== External: Finalize =========
@@ -304,32 +206,7 @@ contract PartyBid is ReentrancyGuardUpgradeable, ERC721HolderUpgradeable {
      * @dev Emits a Finalized event upon success; callable by anyone
      */
     function finalize() external nonReentrant {
-        require(
-            partyStatus == PartyStatus.AUCTION_ACTIVE,
-            "PartyBid::finalize: auction not active"
-        );
-        // finalize auction if it hasn't already been done
-        if (!marketWrapper.isFinalized(auctionId)) {
-            marketWrapper.finalize(auctionId);
-        }
-        // after the auction has been finalized,
-        // if the NFT is owned by the PartyBid, then the PartyBid won the auction
-        address _owner = _getOwner();
-        partyStatus = _owner == address(this) ? PartyStatus.AUCTION_WON : PartyStatus.AUCTION_LOST;
-        uint256 _ethFee;
-        // if the auction was won,
-        if (partyStatus == PartyStatus.AUCTION_WON) {
-            // calculate PartyDAO fee & record total spent
-            _ethFee = _getEthFee(highestBid);
-            totalSpent = highestBid + _ethFee;
-            // transfer ETH fee to PartyDAO
-            _transferETHOrWETH(partyDAOMultisig, _ethFee);
-            // deploy fractionalized NFT vault
-            // and mint fractional ERC-20 tokens
-            _fractionalizeNFT();
-        }
-        // set the contract status & emit result
-        emit Finalized(partyStatus, totalSpent, _ethFee, totalContributedToParty);
+        
     }
 
     // ======== External: Claim =========
@@ -342,38 +219,7 @@ contract PartyBid is ReentrancyGuardUpgradeable, ERC721HolderUpgradeable {
      * @param _contributor the address of the contributor
      */
     function claim(address _contributor) external nonReentrant {
-        // ensure auction has finalized
-        require(
-            partyStatus != PartyStatus.AUCTION_ACTIVE,
-            "PartyBid::claim: auction not finalized"
-        );
-        // ensure contributor submitted some ETH
-        require(
-            totalContributed[_contributor] != 0,
-            "PartyBid::claim: not a contributor"
-        );
-        // ensure the contributor hasn't already claimed
-        require(
-            !claimed[_contributor],
-            "PartyBid::claim: contribution already claimed"
-        );
-        // mark the contribution as claimed
-        claimed[_contributor] = true;
-        // calculate the amount of fractional NFT tokens owed to the user
-        // based on how much ETH they contributed towards the auction,
-        // and the amount of excess ETH owed to the user
-        (uint256 _tokenAmount, uint256 _ethAmount) =
-            getClaimAmounts(_contributor);
-        // transfer tokens to contributor for their portion of ETH used
-        _transferTokens(_contributor, _tokenAmount);
-        // if there is excess ETH, send it back to the contributor
-        _transferETHOrWETH(_contributor, _ethAmount);
-        emit Claimed(
-            _contributor,
-            totalContributed[_contributor],
-            _ethAmount,
-            _tokenAmount
-        );
+        
     }
 
     // ======== External: Emergency Escape Hatches (PartyDAO Multisig Only) =========
