@@ -1,0 +1,12 @@
+{
+  "chainName":  "mainnet",
+  "partyDAOMultisig":"0xF7f52Dd34bc21eDA08c0b804C7c1dbc48375820f",
+  "fractionalArtERC721VaultFactory":"0x85Aa7f78BdB2DE8F3e0c0010d99AD5853fFcfC63",
+  "foundationMarket":"0xcDA72070E455bb31C7690a170224Ce43623d0B6f",
+  "weth":"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  "zoraAuctionHouse":"0xE468cE99444174Bd3bBBEd09209577d25D1ad673",
+  "nounsAuctionHouse": "0x830BD73E4184ceF73443C15111a1DF14e495C706",
+  "logicNftContract": "0x8d04a8c79cEB0889Bdd12acdF3Fa9D207eD3Ff63",
+  "logicTokenId": 252,
+  "logicZoraAuctionId": 782
+}
