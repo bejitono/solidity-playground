@@ -17,7 +17,7 @@ Anna Carroll for PartyDAO
 */
 
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.5;
+pragma solidity 0.8.9;
 
 // ============ External Imports: Inherited Contracts ============
 // NOTE: we inherit from OpenZeppelin upgradeable contracts
@@ -187,6 +187,7 @@ contract PartyBid is ReentrancyGuardUpgradeable, ERC721HolderUpgradeable {
         address _contributor = msg.sender;
         uint256 _amount = msg.value;
         require(_amount > 0, "Amount needs to be higher than 0");
+        uint256 _previousTotalContributedToParty = totalContributedToParty;
         Contribution memory _newContribution = Contribution({
             amount: _amount,
             previousTotalContributedToParty: totalContributedToParty
@@ -212,7 +213,28 @@ contract PartyBid is ReentrancyGuardUpgradeable, ERC721HolderUpgradeable {
      * Callable by any contributor
      */
     function bid() external nonReentrant {
-        
+        require(
+            partyStatus == PartyStatus.AUCTION_ACTIVE, 
+            "Party is not active anymore"
+            );
+        require(
+            totalContributed[msg.sender] > 0,
+            "Only contributors can bid"
+        );
+        require(!marketWrapper.isFinalized(auctionId), "Auction has ended");
+        require(
+            address(this) != marketWrapper.getCurrentHighestBidder(auctionId),
+            "Party is already the highest bidder"
+        );
+        uint256 _minimumBid = marketWrapper.getMinimumBid(auctionId);
+        require(
+            getMaximumBid() >= _minimumBid,
+            "Party has insufficient funds to make a bid"
+        );
+
+        marketWrapper.bid(auctionId, _minimumBid);
+        highestBid = _minimumBid;
+        emit Bid(_minimumBid);
     }
 
     // ======== External: Finalize =========
