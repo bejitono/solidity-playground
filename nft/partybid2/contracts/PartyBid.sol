@@ -183,7 +183,23 @@ contract PartyBid is ReentrancyGuardUpgradeable, ERC721HolderUpgradeable {
      * @dev Emits a Contributed event upon success; callable by anyone
      */
     function contribute() external payable nonReentrant {
-        
+        require(partyStatus == PartyStatus.AUCTION_ACTIVE, "Party is not active anymore");
+        address _contributor = msg.sender;
+        uint256 _amount = msg.value;
+        require(_amount > 0, "Amount needs to be higher than 0");
+        Contribution memory _newContribution = Contribution({
+            amount: _amount,
+            previousTotalContributedToParty: totalContributedToParty
+        });
+        contributions[_contributor].push(_newContribution);
+        totalContributed[_contributor] = totalContributed[_contributor] + _amount;
+        totalContributedToParty = totalContributedToParty + _amount;
+        emit Contributed(
+            _contributor,
+            _amount,
+            _previousTotalContributedToParty,
+            totalContributed[_contributor]
+        );
     }
 
     // ======== External: Bid =========
