@@ -231,7 +231,8 @@ contract PartyBid is ReentrancyGuardUpgradeable, ERC721HolderUpgradeable {
             getMaximumBid() >= _minimumBid,
             "Party has insufficient funds to make a bid"
         );
-
+        // What is the advantage of using a delegatecall here?
+        // To check if the call was successful?
         marketWrapper.bid(auctionId, _minimumBid);
         highestBid = _minimumBid;
         emit Bid(_minimumBid);
@@ -257,7 +258,38 @@ contract PartyBid is ReentrancyGuardUpgradeable, ERC721HolderUpgradeable {
      * @param _contributor the address of the contributor
      */
     function claim(address _contributor) external nonReentrant {
-        
+        require(partyStatus != PartyStatus.AUCTION_ACTIVE, "Party is still ongoing");
+        require(
+            totalContributed[_contributor] > 0,
+            "Claimer is not a contributor"
+        );
+        require(!claimed[_contributor], "Contributor already claimed");
+        if (partyStatus == PartyStatus.AUCTION_WON) {
+            uint256 _totalUsed = totalEthUsedForBid(_contributor);
+            uint256 _tokenAmount;
+            if (_totalUsed > 0) {
+                _tokenAmount = valueToTokens(_totalUsedForBid);
+            }
+            uint256 _ethAmount = totalContributedToParty[_contributor] - _totalUsed;
+            _transferTokens(_contributor, _tokenAmount);
+            _transferETHOrWETH(_contributor, _ethAmount);
+            emit Claimed(
+                _contributor,
+                totalContributed[_contributor],
+                _ethAmount,
+                _tokenAmount
+            );
+        } else {
+            uint256 _amountClaimed = totalContributedToParty[_contributor];
+            claimed[_contributor] = true;
+            _transferETHOrWETH(_contributor, amountClaimed);
+            emit Claimed(
+                _contributor,
+                totalContributed[_contributor],
+                _amountClaimed,
+                0
+            );
+        }
     }
 
     // ======== External: Emergency Escape Hatches (PartyDAO Multisig Only) =========
